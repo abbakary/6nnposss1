@@ -604,10 +604,10 @@ def parse_item_complete(item_lines, item_number):
     
     # Extract unit
     unit = None
-    unit_match = re.search(r'\b(PCS|NOS|KG|HR|LTR|PC|UNT|BOX|SET|UNIT|PIECES|TYRE|TIRE)\b', full_text, re.I)
+    unit_match = re.search(r'\b(PCS|NOS|KG|HR|LTR|PC|UNT|BOX|SET|UNIT|PIECES|TYRE|TIRE)\b', cleaned_text, re.I)
     if unit_match:
         unit = unit_match.group(1).upper()
-    
+
     # Identify quantities and values
     quantities = [n for n in numbers if n['is_integer'] and 0 < n['value'] < 1000]
     potential_rates = [n for n in numbers if not n['is_integer'] or n['value'] >= 1000]
