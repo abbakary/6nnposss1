@@ -54,19 +54,24 @@ def _mark_overdue_orders(hours=24):
         Order.objects.filter(type='inquiry').exclude(status='completed').update(status='completed', completed_at=now, completion_date=now)
 
         # Auto progress: created -> in_progress after 10 minutes (exclude inquiries)
+        # Set started_at to created_at when auto-progressing
         created_cutoff = now - timedelta(minutes=10)
         Order.objects.filter(status="created", created_at__lte=created_cutoff).exclude(type='inquiry').update(status="in_progress", started_at=F('created_at'))
 
         # Mark orders as overdue based on working hours elapsed (9 working hours = 8 AM to 5 PM)
-        # Only check orders that are currently in_progress
-        in_progress_orders = Order.objects.filter(status='in_progress', started_at__isnull=False).exclude(type='inquiry')
+        # Only check orders that are currently in_progress with started_at set
+        in_progress_orders = Order.objects.filter(
+            status='in_progress',
+            started_at__isnull=False
+        ).exclude(type='inquiry')
 
         for order in in_progress_orders:
             if is_order_overdue(order.started_at, now):
                 order.status = 'overdue'
                 order.save(update_fields=['status'])
 
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Error in _mark_overdue_orders: {e}")
         pass
 
 class CustomLoginView(LoginView):
