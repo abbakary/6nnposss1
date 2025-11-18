@@ -465,41 +465,45 @@ def extract_line_items_corrected(lines):
 def parse_item_complete(item_lines, item_number):
     """
     Parse a complete item with proper column separation and value calculation.
+    Handles cases where VAT% appears after rate value.
     """
     if not item_lines:
         return None
-    
+
     # Extract item code from first line if available
     item_code = item_lines[0]['code']
-    
+
     # Combine all lines into one text block
     full_text = ' '.join([line['line'] for line in item_lines])
-    
+
     # Try to extract item code from the text if not already found
     if not item_code:
         code_match = re.search(r'\b(\d{4,15})\b', full_text)
         if code_match:
             item_code = code_match.group(1)
             logger.info(f"Extracted item code from text: {item_code}")
-    
-    # IMPROVED PATTERN MATCHING - Look for complete column structure
+
+    # IMPROVED PATTERN MATCHING - Handle VAT% in rate column
+    # Remove VAT percentages from the text first to clean up parsing
+    cleaned_text = re.sub(r'\s*\d+\.?\d*%\s*', ' ', full_text).strip()
+
     # Pattern: Description Unit Qty Rate Value
     pattern_complete = r'^(.+?)\s+(PCS|NOS|KG|HR|LTR|PC|UNT|BOX|SET|UNIT|PIECES|TYRE|TIRE)\s+(\d+)\s+([\d,]+\.?\d{2})\s+([\d,]+\.?\d{2})$'
-    match_complete = re.search(pattern_complete, full_text)
-    
+    match_complete = re.search(pattern_complete, cleaned_text)
+
     if match_complete:
         description = match_complete.group(1).strip()
         unit = match_complete.group(2).upper()
         qty = int(match_complete.group(3))
         rate = Decimal(match_complete.group(4).replace(',', ''))
         value = Decimal(match_complete.group(5).replace(',', ''))
-        
+
         # Remove item code from description if present
         if item_code and item_code in description:
             description = description.replace(item_code, '', 1).strip()
-        
+
         logger.info(f"Complete pattern match - Code: {item_code}, Desc: {description[:50]}, Unit: {unit}, Qty: {qty}, Rate: {rate}, Value: {value}")
-        
+
         return {
             'code': item_code,
             'description': clean_description(description),
@@ -508,26 +512,26 @@ def parse_item_complete(item_lines, item_number):
             'rate': rate,
             'value': value
         }
-    
+
     # Pattern for items with unit after description
     pattern_with_unit = r'^(.+?)\s+(PCS|NOS|KG|HR|LTR|PC|UNT|BOX|SET|UNIT|PIECES|TYRE|TIRE)\s+(\d+)\s+([\d,]+\.?\d{2})'
-    match_with_unit = re.search(pattern_with_unit, full_text)
-    
+    match_with_unit = re.search(pattern_with_unit, cleaned_text)
+
     if match_with_unit:
         description = match_with_unit.group(1).strip()
         unit = match_with_unit.group(2).upper()
         qty = int(match_with_unit.group(3))
         rate = Decimal(match_with_unit.group(4).replace(',', ''))
-        
-        # Calculate value
+
+        # Calculate value as qty * rate (without VAT)
         value = rate * Decimal(qty)
-        
+
         # Remove item code from description if present
         if item_code and item_code in description:
             description = description.replace(item_code, '', 1).strip()
-        
+
         logger.info(f"Unit pattern match - Code: {item_code}, Desc: {description[:50]}, Unit: {unit}, Qty: {qty}, Rate: {rate}, Value: {value}")
-        
+
         return {
             'code': item_code,
             'description': clean_description(description),
