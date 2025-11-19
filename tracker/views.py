@@ -212,9 +212,10 @@ def dashboard(request: HttpRequest):
     # Always calculate fresh metrics for accurate data
     today = timezone.localdate()
 
-    # Import aggregation functions at the top of the function to avoid UnboundLocalError
+    # Import aggregation functions and datetime utilities at the top of the function to avoid UnboundLocalError
     from decimal import Decimal
     from django.db.models import Sum, Count, Avg
+    from datetime import datetime
 
     # Branch-scoped base querysets with safe fallback for staff/admin without branch assignment
     # Exclude temporary customers (those with full_name starting with "Plate " and phone starting with "PLATE_")
