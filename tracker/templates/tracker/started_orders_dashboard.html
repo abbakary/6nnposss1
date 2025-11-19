@@ -156,9 +156,9 @@
                   <button class="btn btn-primary flex-fill" type="submit">
                     <i class="fa fa-search me-1"></i>Search
                   </button>
-                  {% if search_query or status_filter != 'created' %}
+                  {% if search_query or status_filter %}
                   <a href="{% url 'tracker:started_orders_dashboard' %}" class="btn btn-outline-secondary" title="Clear Filters">
-                    <i class="fa fa-times"></i>
+                    <i class="fa fa-times me-1"></i>Clear
                   </a>
                   {% endif %}
                 </div>
