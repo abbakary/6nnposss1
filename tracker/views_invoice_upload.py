@@ -535,7 +535,50 @@ def api_create_invoice_from_upload(request):
                 )
             except Exception as e:
                 logger.warning(f"Failed to update order from invoice: {e}")
-            
+
+            # Handle additional order types/components
+            try:
+                additional_order_types_json = request.POST.get('additional_order_types', '[]')
+                additional_order_types = json.loads(additional_order_types_json) if additional_order_types_json else []
+
+                if additional_order_types:
+                    from .models import OrderComponent
+
+                    for component_data in additional_order_types:
+                        component_type = component_data.get('type', '').strip()
+                        reason = component_data.get('reason', '').strip()
+
+                        # Validate component type
+                        if component_type not in ['service', 'sales']:
+                            logger.warning(f"Invalid component type: {component_type}")
+                            continue
+
+                        # Check if component already exists
+                        component, created = OrderComponent.objects.get_or_create(
+                            order=order,
+                            type=component_type,
+                            defaults={
+                                'added_by': request.user,
+                                'reason': reason,
+                                'invoice': inv
+                            }
+                        )
+
+                        # If component already existed, update it with new reason if provided
+                        if not created and reason:
+                            component.reason = reason
+                            component.invoice = inv
+                            component.save(update_fields=['reason', 'invoice'])
+                        elif created:
+                            logger.info(f"Created OrderComponent for order {order.id}: type={component_type}")
+                        else:
+                            logger.info(f"OrderComponent already exists for order {order.id}: type={component_type}")
+
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse additional_order_types JSON: {e}")
+            except Exception as e:
+                logger.warning(f"Failed to create order components: {e}")
+
             # Response - redirect to order detail page instead of invoice detail
             return JsonResponse({
                 'success': True,
