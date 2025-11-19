@@ -209,54 +209,91 @@
 <!-- Quick Order Start Section -->
 
 
-<!-- Revenue KPIs -->
-<div class="container-fluid mb-3">
+<!-- Revenue KPIs - Gross Revenue Analysis -->
+<div class="container-fluid mb-4">
   <div class="row g-3">
-    <div class="col-md-4">
-      <div class="card kpi-card shadow-sm">
+    <!-- Gross Revenue This Month -->
+    <div class="col-xxl-3 col-sm-6">
+      <div class="card kpi-card h-100 shadow-sm border-0 kpi-gross-month">
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="card-title mb-1">Revenue This Month (Net)</h6>
-              <h3 class="mb-0 fw-bold">{{ revenue_this_month|default:0|floatformat:2|intcomma }}</h3>
-              <small class="text-muted">Net value (excl. VAT)</small>
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-2 text-muted fw-semibold">
+                <i class="fa fa-calendar-alt me-2 text-info"></i>Gross Revenue This Month
+              </h6>
+              <h3 class="fw-bold mb-1 text-dark">{{ gross_revenue_this_month|default:0|floatformat:2|intcomma }} TSH</h3>
+              <small class="text-muted d-block">
+                <i class="fa fa-file-invoice me-1"></i>{{ invoices_this_month_count }} invoice{% if invoices_this_month_count != 1 %}s{% endif %}
+              </small>
             </div>
-            <div class="kpi-icon">
-              <i class="fa fa-money-bill-wave fa-2x text-success"></i>
+            <div class="kpi-icon-wrapper">
+              <i class="fa fa-money-bill-wave fa-3x text-info opacity-20"></i>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="col-md-4">
-      <div class="card kpi-card shadow-sm">
+    <!-- Total Gross Revenue -->
+    <div class="col-xxl-3 col-sm-6">
+      <div class="card kpi-card h-100 shadow-sm border-0 kpi-gross-total">
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="card-title mb-1">Total Revenue (Net)</h6>
-              <h3 class="mb-0 fw-bold">{{ total_revenue|default:0|floatformat:2|intcomma }}</h3>
-              <small class="text-muted">Net value across all invoices</small>
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-2 text-muted fw-semibold">
+                <i class="fa fa-chart-line me-2 text-success"></i>Total Gross Revenue
+              </h6>
+              <h3 class="fw-bold mb-1 text-dark">{{ total_gross_revenue|default:0|floatformat:2|intcomma }} TSH</h3>
+              <small class="text-muted d-block">
+                <i class="fa fa-history me-1"></i>All-time total
+              </small>
             </div>
-            <div class="kpi-icon">
-              <i class="fa fa-chart-line fa-2x text-primary"></i>
+            <div class="kpi-icon-wrapper">
+              <i class="fa fa-chart-pie fa-3x text-success opacity-20"></i>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="col-md-4">
-      <div class="card kpi-card shadow-sm">
+    <!-- Average Invoice Amount -->
+    <div class="col-xxl-3 col-sm-6">
+      <div class="card kpi-card h-100 shadow-sm border-0 kpi-avg-invoice">
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="card-title mb-1">VAT This Month</h6>
-              <h3 class="mb-0 fw-bold">{{ vat_this_month|default:0|floatformat:2|intcomma }}</h3>
-              <small class="text-muted">Collected VAT</small>
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-2 text-muted fw-semibold">
+                <i class="fa fa-calculator me-2 text-warning"></i>Average Invoice Amount
+              </h6>
+              <h3 class="fw-bold mb-1 text-dark">{{ avg_invoice_amount|default:0|floatformat:2|intcomma }} TSH</h3>
+              <small class="text-muted d-block">
+                <i class="fa fa-balance-scale me-1"></i>Average per invoice
+              </small>
             </div>
-            <div class="kpi-icon">
-              <i class="fa fa-receipt fa-2x text-warning"></i>
+            <div class="kpi-icon-wrapper">
+              <i class="fa fa-percentage fa-3x text-warning opacity-20"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Number of Invoices This Month -->
+    <div class="col-xxl-3 col-sm-6">
+      <div class="card kpi-card h-100 shadow-sm border-0 kpi-invoice-count">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-2 text-muted fw-semibold">
+                <i class="fa fa-file me-2 text-danger"></i>Invoices This Month
+              </h6>
+              <h3 class="fw-bold mb-1 text-dark">{{ invoices_this_month_count|default:0 }}</h3>
+              <small class="text-muted d-block">
+                <i class="fa fa-check-circle me-1"></i>Total documents processed
+              </small>
+            </div>
+            <div class="kpi-icon-wrapper">
+              <i class="fa fa-file-invoice fa-3x text-danger opacity-20"></i>
             </div>
           </div>
         </div>
@@ -264,6 +301,45 @@
     </div>
   </div>
 </div>
+
+<style>
+  .kpi-card {
+    transition: all 0.3s ease;
+    border-radius: 0.75rem;
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .kpi-card .card-body {
+    padding: 1.5rem;
+  }
+
+  .kpi-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+  }
+
+  .kpi-gross-month {
+    border-left: 4px solid #17a2b8;
+  }
+
+  .kpi-gross-total {
+    border-left: 4px solid #28a745;
+  }
+
+  .kpi-avg-invoice {
+    border-left: 4px solid #ffc107;
+  }
+
+  .kpi-invoice-count {
+    border-left: 4px solid #dc3545;
+  }
+</style>
 
 <!-- Show revenue by branch for TSHS -->
 <div class="container-fluid mb-3">
