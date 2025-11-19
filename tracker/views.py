@@ -211,7 +211,11 @@ def dashboard(request: HttpRequest):
     _mark_overdue_orders(hours=24)
     # Always calculate fresh metrics for accurate data
     today = timezone.localdate()
-    
+
+    # Import aggregation functions at the top of the function to avoid UnboundLocalError
+    from decimal import Decimal
+    from django.db.models import Sum, Count, Avg
+
     # Branch-scoped base querysets with safe fallback for staff/admin without branch assignment
     # Exclude temporary customers (those with full_name starting with "Plate " and phone starting with "PLATE_")
     from .utils import get_user_branch
