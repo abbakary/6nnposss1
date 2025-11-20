@@ -351,10 +351,14 @@
                 </a>
               </td>
               <td>
-                {% if o.type == 'service' %}
+                {% if o.type == 'mixed' %}
+                  <span class="badge bg-purple rounded-pill"><i class="fa fa-layer-group me-1"></i>{{ o|order_type_display }}</span>
+                {% elif o.type == 'service' %}
                   <span class="badge bg-primary rounded-pill"><i class="fa fa-wrench me-1"></i>Service</span>
                 {% elif o.type == 'sales' %}
                   <span class="badge bg-success rounded-pill"><i class="fa fa-shopping-cart me-1"></i>Sales</span>
+                {% elif o.type == 'labour' %}
+                  <span class="badge bg-warning text-dark rounded-pill"><i class="fa fa-tools me-1"></i>Labour</span>
                 {% elif o.type == 'inquiry' %}
                   <span class="badge bg-info rounded-pill"><i class="fa fa-question-circle me-1"></i>Inquiry</span>
                 {% else %}
