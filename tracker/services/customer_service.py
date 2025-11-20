@@ -520,11 +520,10 @@ class OrderService:
                     if hasattr(order, field) and value is not None:
                         setattr(order, field, value)
 
-                # Mark as in progress if still created (customer has arrived and service starts)
-                if order.status == 'created':
-                    order.started_at = order.started_at or timezone.now()
-                    # Transition to in_progress so overdue logic works correctly
-                    order.status = 'in_progress'
+                # Set started_at to created_at (not the update/invoice time)
+                # Order will auto-progress to in_progress after 10 minutes via management command
+                if order.status == 'created' and not order.started_at:
+                    order.started_at = order.created_at
 
                 order.save()
 
