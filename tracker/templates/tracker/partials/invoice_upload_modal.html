@@ -618,28 +618,35 @@
   }
 
   function populateFormFields(header) {
-    const customerName = header.customer_name || '';
-    const customerPhone = header.phone || '';
-    const customerEmail = header.email || '';
-    const customerAddress = header.address || '';
-    const invoiceNumber = header.invoice_no || '';
-    const invoiceDate = header.date || '';
     const subtotal = header.subtotal || 0;
     const tax = header.tax || 0;
     const total = header.total || 0;
 
+    // Create function to get field value - prefer editable field if available, fallback to header
+    function getFieldValue(elementId, headerKey) {
+      const el = document.getElementById(elementId);
+      return el && el.value ? el.value : (header[headerKey] || '');
+    }
+
+    function getFieldNumValue(elementId, headerKey) {
+      const el = document.getElementById(elementId);
+      return el && el.value ? parseFloat(el.value) : (header[headerKey] || 0);
+    }
+
+    // Build form fields from editable inputs and header data
     const fields = [
-      { name: 'customer_name', value: customerName },
-      { name: 'customer_phone', value: customerPhone },
-      { name: 'customer_email', value: customerEmail },
-      { name: 'customer_address', value: customerAddress },
-      { name: 'invoice_number', value: invoiceNumber },
-      { name: 'invoice_date', value: formatDateForForm(invoiceDate) },
+      { name: 'customer_name', value: getFieldValue('editableCustomerName', 'customer_name') },
+      { name: 'customer_phone', value: getFieldValue('editableCustomerPhone', 'phone') },
+      { name: 'customer_email', value: getFieldValue('editableCustomerEmail', 'email') },
+      { name: 'customer_address', value: getFieldValue('editableCustomerAddress', 'address') },
+      { name: 'customer_type', value: document.getElementById('editableCustomerType')?.value || 'personal' },
+      { name: 'invoice_number', value: getFieldValue('editableInvoiceNo', 'invoice_no') },
+      { name: 'invoice_date', value: document.getElementById('editableInvoiceDate')?.value || '' },
       { name: 'subtotal', value: subtotal },
       { name: 'tax_amount', value: tax },
       { name: 'total_amount', value: total },
-      { name: 'code_no', value: header.code_no || '' },
-      { name: 'reference', value: header.reference || '' }
+      { name: 'code_no', value: getFieldValue('editableCodeNo', 'code_no') },
+      { name: 'reference', value: getFieldValue('editableReference', 'reference') }
     ];
 
     fields.forEach(field => {
@@ -653,6 +660,7 @@
       inp.value = field.value;
     });
 
+    // Add seller information if provided
     const sellerKeys = ['seller_name', 'seller_address', 'seller_phone', 'seller_email', 'seller_tax_id', 'seller_vat_reg'];
     sellerKeys.forEach(key => {
       if (header[key]) {
@@ -664,6 +672,35 @@
           hiddenFieldsDiv.appendChild(inp);
         }
         inp.value = header[key];
+      }
+    });
+  }
+
+  function updateFormFieldsFromEditable() {
+    // Update hidden form fields from current editable field values before form submission
+    const fields = [
+      { name: 'customer_name', elementId: 'editableCustomerName' },
+      { name: 'customer_phone', elementId: 'editableCustomerPhone' },
+      { name: 'customer_email', elementId: 'editableCustomerEmail' },
+      { name: 'customer_address', elementId: 'editableCustomerAddress' },
+      { name: 'customer_type', elementId: 'editableCustomerType' },
+      { name: 'invoice_number', elementId: 'editableInvoiceNo' },
+      { name: 'invoice_date', elementId: 'editableInvoiceDate' },
+      { name: 'code_no', elementId: 'editableCodeNo' },
+      { name: 'reference', elementId: 'editableReference' }
+    ];
+
+    fields.forEach(field => {
+      const el = document.getElementById(field.elementId);
+      if (el) {
+        let inp = invoiceForm.querySelector(`[name="${field.name}"]`);
+        if (!inp) {
+          inp = document.createElement('input');
+          inp.type = 'hidden';
+          inp.name = field.name;
+          hiddenFieldsDiv.appendChild(inp);
+        }
+        inp.value = el.value;
       }
     });
   }
