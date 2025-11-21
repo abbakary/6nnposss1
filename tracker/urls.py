@@ -59,18 +59,6 @@ urlpatterns = [
     path("orders/<int:pk>/invoice/link/", views.link_invoice_to_order, name="link_invoice_to_order"),
     path("orders/<int:pk>/invoice-link/remove/", views.remove_invoice_link, name="remove_invoice_link"),
 
-    path("analytics/", views.analytics, name="analytics"),
-    path("analytics/customer/", views.analytics_customer, name="analytics_customer"),
-    path("analytics/service/", views.analytics_service, name="analytics_service"),
-    path("analytics/performance/", views.analytics_performance, name="analytics_performance"),
-    path("analytics/revenue/", views.analytics_revenue, name="analytics_revenue"),
-   
-
-    # Reports
-    path("reports/", views.reports, name="reports"),
-    path("reports/advanced/", views.reports_advanced, name="reports_advanced"),
-    path("reports/export/", views.reports_export, name="reports_export"),
-    path("reports/export/pdf/", views.reports_export_pdf, name="reports_export_pdf"),
 
     # Inquiry management
     path("inquiries/", views.inquiries, name="inquiries"),
