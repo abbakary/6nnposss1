@@ -1,0 +1,168 @@
+{% extends 'tracker/base.html' %}
+{% load static %}
+
+{% block title %}Labour Codes - POS Tracker{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col-sm-8">
+                <h3 class="f-w-700">Labour Codes</h3>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'tracker:dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Labour Codes</li>
+                </ol>
+            </div>
+            <div class="col-sm-4">
+                <div class="text-end">
+                    <a href="{% url 'tracker:labour_codes_import' %}" class="btn btn-primary">
+                        <i class="fa fa-plus"></i> Import / Add
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="row">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Search and Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <!-- Search -->
+                        <div class="col-md-4">
+                            <label class="form-label">Search</label>
+                            <input type="text" class="form-control" name="search" placeholder="Code, description..." value="{{ search_query }}">
+                        </div>
+
+                        <!-- Category Filter -->
+                        <div class="col-md-4">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" name="category">
+                                <option value="">All Categories</option>
+                                {% for category in categories %}
+                                <option value="{{ category }}" {% if category == category_filter %}selected{% endif %}>{{ category }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Active Filter -->
+                        <div class="col-md-4">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" name="active">
+                                <option value="">All</option>
+                                <option value="true" {% if active_filter == 'true' %}selected{% endif %}>Active</option>
+                                <option value="false" {% if active_filter == 'false' %}selected{% endif %}>Inactive</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fa fa-search"></i> Filter
+                            </button>
+                            <a href="{% url 'tracker:labour_codes_list' %}" class="btn btn-secondary">
+                                <i class="fa fa-redo"></i> Reset
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Labour Codes Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header pb-3">
+                    <h5>Labour Codes ({{ labour_codes.count }} / {{ total_count }})</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Code</th>
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if labour_codes %}
+                                {% for code in labour_codes %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-light text-dark">{{ code.code }}</span>
+                                    </td>
+                                    <td>{{ code.description }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ code.category }}</span>
+                                    </td>
+                                    <td>
+                                        {% if code.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ code.created_at|date:"d M Y" }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{% url 'tracker:labour_code_edit' code.id %}" class="btn btn-outline-primary" title="Edit">
+                                                <i class="fa fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'tracker:labour_code_delete' code.id %}" class="btn btn-outline-danger" title="Delete">
+                                                <i class="fa fa-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <p class="text-muted mb-0">No labour codes found</p>
+                                    <a href="{% url 'tracker:labour_codes_import' %}" class="btn btn-sm btn-primary mt-3">
+                                        <i class="fa fa-plus"></i> Add Labour Code
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.badge {
+    font-weight: 500;
+    font-size: 12px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}
