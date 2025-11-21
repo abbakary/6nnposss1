@@ -10,6 +10,7 @@ from . import views_start_order
 from . import views_invoice
 from . import views_invoice_upload
 from . import views_vehicle_tracking
+from . import views_labour_codes
 
 app_name = "tracker"
 
