@@ -162,23 +162,31 @@ def extract_customer_address(lines):
             if not re.search(r'16541|Superdoll|Tax\s+ID|VAT\s+Reg', line, re.I):
                 address_lines.append(address_part)
 
-                # Look for continuation lines (next lines without a label)
+                # Look for continuation lines (next lines without a label) - be aggressive in capturing
                 j = i + 1
-                while j < len(lines) and j < i + 4:
+                while j < len(lines) and j < i + 6:  # Increased from i+4 to i+6 to capture more lines
                     next_line = lines[j].strip()
 
+                    if not next_line:
+                        j += 1
+                        continue
+
                     # Stop if we hit a label line (contains a field name with colon)
-                    if re.search(r'^[A-Z][A-Za-z\s]*[\t:]', next_line):
+                    # But be careful not to match city names or abbreviations that might have colons
+                    if re.search(r'^(?:Tel|Fax|Email|Cust\s+Ref|Ref\s+Date|Del\.\s+Date|Attended|Kind|Reference|Code\s+No|Customer\s+Name|Pl\.\s+No)\s*[\t:]', next_line, re.I):
                         break
 
-                    # Include lines that look like address continuations
-                    if next_line and not re.search(r'16541|Superdoll|Tax\s+ID|VAT\s+Reg', next_line, re.I):
-                        # Check if it looks like an address line
-                        if (re.search(r'DAR\s*ES\s*SALAAM|TANZANIA|[A-Z]+\s+ROAD|PLOT\s+\d+|P\.?O\.?\s*BOX|^\d+\s|^[A-Z]{2,}', next_line, re.I)):
-                            address_lines.append(next_line)
-                            j += 1
-                        else:
-                            break
+                    # Exclude lines that clearly belong to seller info
+                    if re.search(r'16541|Superdoll|Tax\s+ID|VAT\s+Reg|Dear\s+Sir|We\s+thank|Page\s+\d', next_line, re.I):
+                        break
+
+                    # Include all lines that don't look like new fields and aren't empty
+                    # This is more aggressive - we'll include almost any non-empty line until we hit a clear field marker
+                    if next_line and len(next_line) > 2:
+                        # Additional check: if it looks like it could be part of an address
+                        # (contains city, country, street references, P.O. Box, etc.)
+                        address_lines.append(next_line)
+                        j += 1
                     else:
                         break
 
@@ -186,8 +194,8 @@ def extract_customer_address(lines):
                     # Join all address lines and clean up
                     clean_address = ' '.join(address_lines)
                     clean_address = re.sub(r'\s+', ' ', clean_address).strip()
-                    # Remove any trailing "Cust Ref" or similar that might have been partially captured
-                    clean_address = re.sub(r'\s+(?:Cust\s+Ref|Ref\s+Date|Del\.\s+Date|$).*$', '', clean_address, flags=re.I)
+                    # Remove any trailing field names that might have been partially captured
+                    clean_address = re.sub(r'\s+(?:Cust\s+Ref|Ref\s+Date|Del\.\s+Date|Attended|Kind|Reference).*$', '', clean_address, flags=re.I)
                     clean_address = re.sub(r'\s+', ' ', clean_address).strip()
                     logger.info(f"Found customer address from 'Address :' label: {clean_address}")
                     return clean_address
@@ -200,8 +208,14 @@ def extract_customer_address(lines):
             address_lines.append(line.strip())
             # Look for continuation lines
             j = i + 1
-            while j < len(lines) and j < i + 3:
+            while j < len(lines) and j < i + 5:  # Increased range
                 next_line = lines[j].strip()
+
+                # Stop at clear field markers
+                if re.search(r'^(?:Tel|Fax|Email|Attended|Kind|Reference|Dear\s+Sir)\s*[\t:]', next_line, re.I):
+                    break
+
+                # Include address-like lines
                 if (re.search(r'[A-Z]+\s*[A-Z]*\s*,?\s*[A-Z]*\s*TANZANIA', next_line, re.I) or
                     re.search(r'DAR\s*ES\s*SALAAM', next_line, re.I) or
                     re.search(r'PLOT\s*\d+', next_line, re.I) or
