@@ -672,16 +672,106 @@ class InquiryResponseForm(forms.Form):
             'placeholder': 'Enter your response to the customer...'
         })
     )
-    
+
     follow_up_required = forms.BooleanField(
         required=False,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
-    
+
     follow_up_date = forms.DateField(
         required=False,
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
+
+
+class InquiryCreationForm(forms.Form):
+    """Form for creating new customer inquiries"""
+    INQUIRY_TYPE_CHOICES = [
+        ('Pricing', 'Pricing'),
+        ('Services', 'Services'),
+        ('Appointment Booking', 'Appointment Booking'),
+        ('General', 'General'),
+        ('Complaint', 'Complaint'),
+        ('Feedback', 'Feedback'),
+    ]
+
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('urgent', 'Urgent'),
+    ]
+
+    customer = forms.ModelChoiceField(
+        queryset=Customer.objects.all(),
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'placeholder': 'Select customer'
+        }),
+        label='Customer'
+    )
+
+    inquiry_type = forms.ChoiceField(
+        choices=INQUIRY_TYPE_CHOICES,
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+        }),
+        label='Inquiry Type'
+    )
+
+    questions = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 5,
+            'placeholder': 'Enter inquiry details or questions...'
+        }),
+        label='Details/Questions'
+    )
+
+    priority = forms.ChoiceField(
+        choices=PRIORITY_CHOICES,
+        initial='medium',
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+        }),
+        label='Priority'
+    )
+
+    follow_up_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control'
+        }),
+        label='Follow-up Date (Optional)'
+    )
+
+
+class InquiryNoteForm(forms.Form):
+    """Form for adding notes/responses to inquiries"""
+    NOTE_TYPE_CHOICES = [
+        ('response', 'Response (Visible to Customer)'),
+        ('note', 'Internal Note (Staff Only)'),
+    ]
+
+    note_type = forms.ChoiceField(
+        choices=NOTE_TYPE_CHOICES,
+        initial='response',
+        widget=forms.RadioSelect(attrs={
+            'class': 'form-check-input',
+        }),
+        label='Note Type'
+    )
+
+    content = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Enter your note or response...'
+        }),
+        label='Content'
+    )
+
 
 class BrandChoiceField(forms.ModelChoiceField):
     """Custom ModelChoiceField for brand selection with improved display"""
