@@ -1280,3 +1280,64 @@ class InvoicePaymentForm(forms.ModelForm):
             'reference': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Cheque number, transaction ID, etc.'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Payment notes'}),
         }
+
+
+class LabourCodeForm(forms.ModelForm):
+    class Meta:
+        model = LabourCode
+        fields = ['code', 'description', 'category', 'is_active']
+        widgets = {
+            'code': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter labour code (e.g., 22007)',
+                'required': True
+            }),
+            'description': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter description (e.g., OIL SERVICE)',
+                'required': True
+            }),
+            'category': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter category (e.g., labour, tyre service)',
+                'required': True
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
+                'role': 'switch'
+            }),
+        }
+
+    def clean_code(self):
+        code = self.cleaned_data.get('code')
+        if code:
+            code = code.strip().upper()
+        return code
+
+    def clean_category(self):
+        category = self.cleaned_data.get('category')
+        if category:
+            category = category.strip().lower()
+        return category
+
+
+class LabourCodeCSVImportForm(forms.Form):
+    csv_file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': '.csv',
+            'required': True
+        }),
+        help_text='CSV file should have columns: code, description, category'
+    )
+
+    clear_existing = forms.BooleanField(
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        }),
+        label='Clear existing codes before importing',
+        help_text='Check this to delete all existing labour codes before importing new ones'
+    )
