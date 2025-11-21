@@ -292,6 +292,3 @@ def api_labour_codes(request):
         LabourCode.objects.filter(is_active=True).values('code', 'description', 'category')
     )
     return JsonResponse({'codes': codes})
-
-
-from django.db import models
