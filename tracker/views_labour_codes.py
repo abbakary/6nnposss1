@@ -161,15 +161,20 @@ def labour_codes_import(request):
                     messages.error(request, f'Error saving labour code: {str(e)}')
 
         elif action == 'import':
-            # Handle CSV import
+            # Handle CSV/Excel import
             form = LabourCodeCSVImportForm(request.POST, request.FILES)
             if form.is_valid():
-                csv_file = request.FILES.get('csv_file')
+                import_file = request.FILES.get('import_file')
                 clear_existing = form.cleaned_data.get('clear_existing', False)
 
-                if csv_file:
+                if import_file:
                     try:
-                        import_stats = _process_csv_import(csv_file, clear_existing)
+                        # Determine file type based on filename
+                        filename = import_file.name.lower()
+                        if filename.endswith('.xlsx') or filename.endswith('.xls'):
+                            import_stats = _process_excel_import(import_file, clear_existing)
+                        else:
+                            import_stats = _process_csv_import(import_file, clear_existing)
 
                         if import_stats['success']:
                             messages.success(
@@ -183,10 +188,11 @@ def labour_codes_import(request):
                         else:
                             messages.error(request, f"Import failed: {import_stats['error_message']}")
                     except Exception as e:
-                        messages.error(request, f"Error processing CSV file: {str(e)}")
+                        logger.error(f"Error processing import file: {str(e)}", exc_info=True)
+                        messages.error(request, f"Error processing file: {str(e)}")
                         import_stats = None
             else:
-                messages.error(request, 'Please provide a valid CSV file')
+                messages.error(request, 'Please provide a valid file')
     else:
         form = LabourCodeCSVImportForm()
 
