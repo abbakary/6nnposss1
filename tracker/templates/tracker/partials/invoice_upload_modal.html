@@ -173,21 +173,21 @@
           <div id="extractedLineItemsSection" class="card mb-3" style="display:none;">
             <div class="card-header bg-light">
               <strong><i class="fa fa-list me-2"></i>Line Items</strong>
-              <small class="text-muted ms-2">Items from invoice</small>
+              <small class="text-muted ms-2">Items from invoice with categories</small>
             </div>
             <div class="card-body p-0">
               <div class="table-responsive">
                 <table class="table table-sm table-bordered mb-0 extracted-line-items-table">
                   <thead class="table-light">
                     <tr style="background-color: #f8f9fa;">
-                      <th style="width: 5%; text-align: center;">#</th>
-                      <th style="width: 10%;">Code</th>
-                      <th style="width: 35%; word-break: break-word;">Description</th>
-                      <th style="width: 12%;">Category</th>
+                      <th style="width: 4%; text-align: center;">#</th>
+                      <th style="width: 8%;">Code</th>
+                      <th style="width: 28%; word-break: break-word;">Description</th>
+                      <th style="width: 12%;">Type</th>
                       <th style="width: 8%;">Unit</th>
-                      <th style="width: 7%; text-align: center;">Qty</th>
+                      <th style="width: 6%; text-align: center;">Qty</th>
                       <th style="width: 10%; text-align: right;">Unit Price</th>
-                      <th style="width: 13%; text-align: right;">Total</th>
+                      <th style="width: 12%; text-align: right;">Total</th>
                     </tr>
                   </thead>
                   <tbody id="lineItemsBody" class="extracted-line-items-body"></tbody>
@@ -287,6 +287,37 @@
   background-color: #fff;
 }
 
+.extracted-line-items-table code {
+  background-color: #f0f0f0;
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  color: #333;
+}
+
+.extracted-line-items-table .badge {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.65rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.extracted-line-items-table .badge-labour {
+  background-color: #0dcaf0;
+  color: white;
+}
+
+.extracted-line-items-table .badge-service {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.extracted-line-items-table .badge-sales {
+  background-color: #198754;
+  color: white;
+}
+
 @media (max-width: 1200px) {
   .extracted-line-items-table {
     font-size: 0.8rem;
@@ -301,6 +332,11 @@
   .extracted-line-items-table th,
   .extracted-line-items-table td {
     padding: 0.4rem 0.25rem;
+  }
+
+  .extracted-line-items-table .badge {
+    font-size: 0.65rem;
+    padding: 0.25rem 0.5rem;
   }
 }
 </style>
@@ -605,13 +641,27 @@
       const qty = item.qty || 1;
       const rate = item.rate || 0;
       const value = item.value || (qty * rate);
+      const category = item.category || 'Sales';
+      const orderType = item.order_type || 'sales';
+      const colorClass = item.color_class || 'badge-sales';
+
+      // Create badge HTML for category
+      const categoryBadgeMap = {
+        'badge-labour': { bg: 'bg-info', icon: 'fa-tools', text: 'Labour' },
+        'badge-service': { bg: 'bg-primary', icon: 'fa-wrench', text: 'Service' },
+        'badge-sales': { bg: 'bg-success', icon: 'fa-shopping-cart', text: 'Sales' }
+      };
+
+      const badgeInfo = categoryBadgeMap[colorClass] || categoryBadgeMap['badge-sales'];
+      const categoryBadge = `<span class="badge ${badgeInfo.bg} rounded-pill"><i class="fa ${badgeInfo.icon} me-1"></i>${badgeInfo.text}</span>`;
 
       const row = document.createElement('tr');
       row.dataset.itemIndex = idx;
       row.innerHTML = `
         <td style="text-align: center;"><small>${idx + 1}</small></td>
-        <td><small>${code}</small></td>
+        <td><small><code>${code}</code></small></td>
         <td><small>${desc}</small></td>
+        <td><small>${categoryBadge}</small></td>
         <td><small>${unit}</small></td>
         <td style="text-align: center;"><small>${qty}</small></td>
         <td style="text-align: right;"><small>${parseFloat(rate).toLocaleString('en-US', {minimumFractionDigits: 2})}</small></td>

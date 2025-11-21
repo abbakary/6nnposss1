@@ -22,6 +22,68 @@ from .services import OrderService, CustomerService, VehicleService
 logger = logging.getLogger(__name__)
 
 
+def _get_item_code_categories(item_codes):
+    """
+    Helper function to get category information for item codes.
+    Queries LabourCode for each code and returns category and order type.
+
+    Args:
+        item_codes: List of item codes extracted from invoice
+
+    Returns:
+        Dict mapping code -> {category, order_type, color_class}
+    """
+    from tracker.models import LabourCode
+    from tracker.utils.order_type_detector import _normalize_category_to_order_type
+
+    if not item_codes:
+        return {}
+
+    # Clean codes
+    cleaned_codes = [str(code).strip() for code in item_codes if code]
+    if not cleaned_codes:
+        return {}
+
+    # Query database
+    found_codes = LabourCode.objects.filter(
+        code__in=cleaned_codes,
+        is_active=True
+    ).values('code', 'category')
+
+    result = {}
+    found_code_set = set()
+
+    for row in found_codes:
+        code = row['code']
+        category = row['category']
+        order_type = _normalize_category_to_order_type(category)
+
+        # Assign color based on order type
+        color_map = {
+            'labour': 'badge-labour',
+            'service': 'badge-service',
+            'sales': 'badge-sales',
+        }
+
+        result[code] = {
+            'category': category,
+            'order_type': order_type,
+            'color_class': color_map.get(order_type, 'badge-secondary')
+        }
+        found_code_set.add(code)
+
+    # Add unmapped codes as 'sales'
+    for code in cleaned_codes:
+        if code not in found_code_set:
+            result[code] = {
+                'category': 'Sales',
+                'order_type': 'sales',
+                'color_class': 'badge-sales'
+            }
+
+    return result
+
+
 @login_required
 @require_http_methods(["POST"])
 def api_extract_invoice_preview(request):
@@ -29,21 +91,21 @@ def api_extract_invoice_preview(request):
     Step 1: Extract invoice data from uploaded PDF for preview.
     Returns extracted customer, order, and payment information.
     Does NOT create any records yet.
-    
+
     POST fields:
       - file: PDF file to extract
       - selected_order_id (optional): Started order ID to link to
       - plate (optional): Vehicle plate number
-      
+
     Returns:
       - success: true/false
       - header: Customer and payment info {invoice_no, customer_name, address, date, subtotal, tax, total}
-      - items: Line items [{description, qty, value}]
+      - items: Line items [{description, qty, value, code, category, order_type, color_class}]
       - raw_text: Full extracted text for reference
       - message: Error/status message
     """
     user_branch = get_user_branch(request.user)
-    
+
     # Validate file upload
     uploaded = request.FILES.get('file')
     if not uploaded:
@@ -51,7 +113,7 @@ def api_extract_invoice_preview(request):
             'success': False,
             'message': 'No file uploaded'
         })
-    
+
     try:
         file_bytes = uploaded.read()
     except Exception as e:
@@ -60,7 +122,7 @@ def api_extract_invoice_preview(request):
             'success': False,
             'message': 'Failed to read uploaded file'
         })
-    
+
     # Extract text from PDF (non-OCR extractor with filename)
     try:
         from tracker.utils.pdf_text_extractor import extract_from_bytes as extract_pdf_text
@@ -72,7 +134,7 @@ def api_extract_invoice_preview(request):
             'message': f'Failed to extract invoice data: {str(e)}',
             'error': str(e)
         })
-    
+
     # If extraction failed - still return partial data for manual completion
     if not extracted.get('success'):
         logger.info(f"Extraction failed: {extracted.get('error')} - {extracted.get('message')}")
@@ -84,10 +146,36 @@ def api_extract_invoice_preview(request):
             'header': extracted.get('header', {}),
             'items': extracted.get('items', [])
         })
-    
+
     # Return extracted preview data
     header = extracted.get('header') or {}
     items = extracted.get('items') or []
+
+    # Get categories for all item codes
+    item_codes = [item.get('code') for item in items if item.get('code')]
+    code_categories = _get_item_code_categories(item_codes)
+
+    # Enrich items with category information
+    enriched_items = []
+    for item in items:
+        code = item.get('code', '')
+        category_info = code_categories.get(code, {
+            'category': 'Sales',
+            'order_type': 'sales',
+            'color_class': 'badge-sales'
+        })
+
+        enriched_items.append({
+            'description': item.get('description', ''),
+            'qty': int(item.get('qty', 1)) if isinstance(item.get('qty'), (int, float)) else 1,
+            'unit': item.get('unit'),
+            'code': code,
+            'value': float(item.get('value') or 0),
+            'rate': float(item.get('rate') or 0),
+            'category': category_info.get('category'),
+            'order_type': category_info.get('order_type'),
+            'color_class': category_info.get('color_class')
+        })
 
     return JsonResponse({
         'success': True,
@@ -116,17 +204,7 @@ def api_extract_invoice_preview(request):
             'seller_tax_id': header.get('seller_tax_id'),
             'seller_vat_reg': header.get('seller_vat_reg'),
         },
-        'items': [
-            {
-                'description': item.get('description', ''),
-                'qty': int(item.get('qty', 1)) if isinstance(item.get('qty'), (int, float)) else 1,
-                'unit': item.get('unit'),
-                'code': item.get('code'),
-                'value': float(item.get('value') or 0),
-                'rate': float(item.get('rate') or 0)
-            }
-            for item in items
-        ],
+        'items': enriched_items,
         'raw_text': extracted.get('raw_text', '')
     })
 

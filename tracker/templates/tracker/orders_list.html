@@ -354,15 +354,15 @@
               </td>
               <td>
                 {% if o.type == 'mixed' %}
-                  <span class="badge bg-purple rounded-pill"><i class="fa fa-layer-group me-1"></i>{{ o|order_type_display }}</span>
+                  <span class="badge order-type-mixed rounded-pill" title="Mixed order containing multiple types"><i class="fa fa-layer-group me-1"></i>{{ o|order_type_display }}</span>
                 {% elif o.type == 'service' %}
-                  <span class="badge bg-primary rounded-pill"><i class="fa fa-wrench me-1"></i>Service</span>
+                  <span class="badge order-type-service rounded-pill"><i class="fa fa-wrench me-1"></i>Service</span>
                 {% elif o.type == 'sales' %}
-                  <span class="badge bg-success rounded-pill"><i class="fa fa-shopping-cart me-1"></i>Sales</span>
+                  <span class="badge order-type-sales rounded-pill"><i class="fa fa-shopping-cart me-1"></i>Sales</span>
                 {% elif o.type == 'labour' %}
-                  <span class="badge bg-warning text-dark rounded-pill"><i class="fa fa-tools me-1"></i>Labour</span>
+                  <span class="badge order-type-labour rounded-pill"><i class="fa fa-tools me-1"></i>Labour</span>
                 {% elif o.type == 'inquiry' %}
-                  <span class="badge bg-info rounded-pill"><i class="fa fa-question-circle me-1"></i>Inquiry</span>
+                  <span class="badge order-type-inquiry rounded-pill"><i class="fa fa-question-circle me-1"></i>Inquiry</span>
                 {% else %}
                   <span class="badge bg-secondary rounded-pill">{{ o.type }}</span>
                 {% endif %}
@@ -937,5 +937,62 @@ td.text-end:last-child {
     .time-status {
         margin-left: 4px;
     }
+}
+
+/* Order Type Badge Styling - Improved Colors and Visibility */
+.order-type-mixed {
+    background-color: #8b5cf6;
+    color: white;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.order-type-mixed:hover {
+    background-color: #7c3aed;
+    text-decoration: none;
+}
+
+.order-type-service {
+    background-color: #0d6efd;
+    color: white;
+    font-weight: 500;
+}
+
+.order-type-service:hover {
+    background-color: #0b5ed7;
+    text-decoration: none;
+}
+
+.order-type-sales {
+    background-color: #198754;
+    color: white;
+    font-weight: 500;
+}
+
+.order-type-sales:hover {
+    background-color: #157347;
+    text-decoration: none;
+}
+
+.order-type-labour {
+    background-color: #0dcaf0;
+    color: #212529;
+    font-weight: 600;
+}
+
+.order-type-labour:hover {
+    background-color: #0aa2c0;
+    text-decoration: none;
+}
+
+.order-type-inquiry {
+    background-color: #0dcaf0;
+    color: #212529;
+    font-weight: 500;
+}
+
+.order-type-inquiry:hover {
+    background-color: #0aa2c0;
+    text-decoration: none;
 }
 </style>
