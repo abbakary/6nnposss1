@@ -891,10 +891,10 @@
                       'customer_address': hdr.address || '',
                       'reference': hdr.reference || hdr.invoice_no || hdr.code_no || '',
                       'attended_by': hdr.attended_by || '',
-                      'kind_attention': hdr.kind_attention || '',
+                      'kind_intention': hdr.kind_intention || '',
                       'notes': (hdr.notes || hdr.remarks || ''),
                       'terms': hdr.delivery_terms || '',
-                      'plate': hdr.reference || ''
+                      'plate_number': hdr.reference || ''
                     };
 
                     Object.keys(map).forEach(k=>{
