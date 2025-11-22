@@ -479,23 +479,36 @@
     (function(){
         const customerSelect = document.getElementById('customerSelect');
         if (customerSelect) {
-            fetch('/tracker/api/customers/summary/', {
+            fetch('/tracker/api/customers/list/', {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
             .then(r => r.json())
             .then(data => {
-                if (data.success && data.customers) {
+                if (data.success && data.customers && data.customers.length > 0) {
                     data.customers.forEach(c => {
                         const option = document.createElement('option');
                         option.value = c.id;
-                        option.textContent = c.full_name;
+                        option.textContent = `${c.full_name}${c.phone ? ' (' + c.phone + ')' : ''}`;
                         customerSelect.appendChild(option);
                     });
+                } else if (data.success && data.customers && data.customers.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = '-- No customers available --';
+                    option.disabled = true;
+                    customerSelect.appendChild(option);
                 }
             })
-            .catch(e => console.error('Error loading customers:', e));
+            .catch(e => {
+                console.error('Error loading customers:', e);
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = '-- Error loading customers --';
+                option.disabled = true;
+                customerSelect.appendChild(option);
+            });
         }
     })();
 
