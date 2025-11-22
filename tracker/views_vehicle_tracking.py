@@ -382,7 +382,6 @@ def api_vehicle_analytics(request):
         ).order_by('period_date')
 
         # Group data by period in Python (SQLite workaround)
-        from collections import defaultdict
         trends_dict = defaultdict(lambda: {'total_amount': 0, 'invoice_count': 0, 'vehicles': set()})
 
         for invoice in invoices_with_dates:
