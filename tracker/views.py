@@ -830,6 +830,22 @@ def api_customers_summary(request: HttpRequest):
 
 
 @login_required
+def api_customers_list(request: HttpRequest):
+    """API endpoint to get all customers for dropdown selection (e.g., inquiries)"""
+    qs = scope_queryset(Customer.objects.all().order_by('full_name'), request.user, request)
+    customers = [
+        {
+            'id': c.id,
+            'full_name': c.full_name,
+            'phone': c.phone or '',
+            'customer_type': c.customer_type or 'personal',
+        }
+        for c in qs
+    ]
+    return JsonResponse({'success': True, 'customers': customers})
+
+
+@login_required
 def customer_detail(request: HttpRequest, pk: int):
     customers_qs = scope_queryset(Customer.objects.all(), request.user, request)
     c = get_object_or_404(customers_qs, pk=pk)
