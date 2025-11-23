@@ -721,17 +721,24 @@ def customers_list(request: HttpRequest):
         )
     if f_type:
         qs = qs.filter(customer_type=f_type)
-    if f_status == 'active':
-        qs = qs.filter(total_visits__gt=0)
-    elif f_status == 'inactive':
-        qs = qs.filter(total_visits__lte=0)
-    elif f_status == 'returning':
-        qs = qs.filter(total_visits__gt=1)
 
     # Stats - fix calculations with current date
     from datetime import date
     today_date = date.today()
-    active_customers = customers_qs.filter(arrival_time__date=today_date).count()
+
+    # Apply status filters based on today's activity and visit history
+    if f_status == 'active':
+        # Active today: customers who visited today (based on last_visit date)
+        qs = qs.filter(last_visit__date=today_date)
+    elif f_status == 'inactive':
+        # Inactive: customers who have never visited or didn't visit today
+        qs = qs.filter(total_visits=0)
+    elif f_status == 'returning':
+        # Returning: customers with more than 1 total visit
+        qs = qs.filter(total_visits__gt=1)
+
+    # KPI calculations for header
+    active_customers = customers_qs.filter(last_visit__date=today_date).count()
     new_customers_today = customers_qs.filter(registration_date__date=today_date).count()
     returning_customers = customers_qs.filter(total_visits__gt=1).count()
 
