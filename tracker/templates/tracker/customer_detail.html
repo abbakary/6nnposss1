@@ -990,16 +990,9 @@
 
     if (startBtn) {
       startBtn.addEventListener('click', function(e) {
-        // Allow starting without plate; modal will handle order type
-      });
-    }
+        e.preventDefault();
 
-    document.addEventListener('click', function(ev) {
-      const t = ev.target;
-      if (!t) return;
-      if (t.id === 'confirmQuickStart' || (t.closest && t.closest('#confirmQuickStart'))) {
         let plate = '';
-
         // Get plate from either dropdown or text input
         if (vehicleSelector && vehicleSelector.style.display !== 'none' && vehicleSelector.value && vehicleSelector.value !== '__new__') {
           plate = vehicleSelector.value.trim().toUpperCase();
@@ -1009,15 +1002,22 @@
           plate = (plateEl.value || '').trim().toUpperCase();
         }
 
-        const orderType = document.querySelector('input[name="quickOrderType"]:checked')?.value || 'service';
+        // If no plate, ask user
+        if (!plate) {
+          alert('Please enter a vehicle plate number');
+          return;
+        }
+
+        // Create order with default type 'service' - order type will be determined after invoice extraction
         const payload = {
           plate_number: plate,
-          order_type: orderType,
+          order_type: 'service',
           use_existing_customer: true,
           existing_customer_id: {{ customer.id }}
         };
-        const modal = bootstrap.Modal.getInstance(orderTypeModal);
-        if (modal) modal.hide();
+
+        startBtn.disabled = true;
+        startBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i>Starting...';
 
         fetch('/tracker/api/orders/start/', {
           method: 'POST',
@@ -1028,10 +1028,16 @@
             window.location.reload();
           } else {
             alert(data && data.error ? data.error : 'Failed to start order');
+            startBtn.disabled = false;
+            startBtn.innerHTML = '<i class="fa fa-play me-1"></i>Start Order';
           }
-        }).catch(e => alert('Error: ' + (e && e.message ? e.message : e)));
-      }
-    });
+        }).catch(e => {
+          alert('Error: ' + (e && e.message ? e.message : e));
+          startBtn.disabled = false;
+          startBtn.innerHTML = '<i class="fa fa-play me-1"></i>Start Order';
+        });
+      });
+    }
 
     if(stopBtn){
       stopBtn.addEventListener('click',function(){
