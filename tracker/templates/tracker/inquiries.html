@@ -328,10 +328,35 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
+                        <label class="form-label fw-semibold">Customer</label>
+                        <div class="btn-group w-100 mb-3" role="group">
+                            <input type="radio" class="btn-check" name="customerMode" id="existingCustomerMode" value="existing" checked>
+                            <label class="btn btn-outline-primary" for="existingCustomerMode">Select Existing</label>
+                            <input type="radio" class="btn-check" name="customerMode" id="newCustomerMode" value="new">
+                            <label class="btn btn-outline-primary" for="newCustomerMode">Create New</label>
+                        </div>
+                    </div>
+
+                    <!-- Existing Customer Section -->
+                    <div id="existingCustomerSection" class="mb-3">
                         <label class="form-label fw-semibold">Select Customer</label>
-                        <select class="form-select" name="customer" required id="customerSelect">
+                        <select class="form-select" name="customer" id="customerSelect">
                             <option value="">-- Choose a customer --</option>
                         </select>
+                    </div>
+
+                    <!-- New Customer Section -->
+                    <div id="newCustomerSection" style="display:none;" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Full Name</label>
+                                <input type="text" name="new_customer_name" id="newCustomerName" class="form-control" placeholder="Customer name">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Phone</label>
+                                <input type="text" name="new_customer_phone" id="newCustomerPhone" class="form-control" placeholder="Phone number">
+                            </div>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Inquiry Type</label>
