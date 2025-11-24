@@ -573,7 +573,24 @@
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
 
+                const mode = document.querySelector('input[name="customerMode"]:checked')?.value;
+                const existingCustomerId = document.getElementById('customerSelect')?.value;
+                const newCustomerName = document.getElementById('newCustomerName')?.value;
+                const newCustomerPhone = document.getElementById('newCustomerPhone')?.value;
+
+                // Build FormData
                 const formData = new FormData(form);
+                formData.set('customer_mode', mode || 'existing');
+
+                if (mode === 'new') {
+                    // For new customer, send customer creation data
+                    formData.set('new_customer_name', newCustomerName);
+                    formData.set('new_customer_phone', newCustomerPhone);
+                    // Remove the customer field if it's empty
+                    if (!existingCustomerId) {
+                        formData.delete('customer');
+                    }
+                }
 
                 fetch('/tracker/api/inquiries/create/', {
                     method: 'POST',
@@ -596,7 +613,7 @@
                         alert('Inquiry created successfully!');
                         location.reload();
                     } else {
-                        alert('Error: ' + data.message);
+                        alert('Error: ' + (data.message || 'Failed to create inquiry'));
                     }
                 })
                 .catch(e => {
