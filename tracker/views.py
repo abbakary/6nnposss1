@@ -5568,65 +5568,114 @@ def api_create_inquiry(request: HttpRequest):
     """API endpoint to create a new inquiry"""
     from .forms import InquiryCreationForm
     from .models import InquiryNote
+    from .services import CustomerService
 
     if request.method == 'POST':
-        form = InquiryCreationForm(request.POST)
+        user_branch = get_user_branch(request.user)
+        customer_mode = request.POST.get('customer_mode', 'existing')
 
-        if form.is_valid():
-            try:
-                customer = form.cleaned_data['customer']
-                inquiry_type = form.cleaned_data['inquiry_type']
-                questions = form.cleaned_data['questions']
-                priority = form.cleaned_data['priority']
-                follow_up_date = form.cleaned_data.get('follow_up_date')
+        # Handle new customer creation
+        customer = None
+        if customer_mode == 'new':
+            new_name = (request.POST.get('new_customer_name') or '').strip()
+            new_phone = (request.POST.get('new_customer_phone') or '').strip()
 
-                # Create inquiry order
-                inquiry = Order.objects.create(
-                    order_number=Order()._generate_order_number(),
-                    type='inquiry',
-                    status='completed',
-                    customer=customer,
-                    inquiry_type=inquiry_type,
-                    questions=questions,
-                    priority=priority,
-                    follow_up_date=follow_up_date,
-                    branch=get_user_branch(request.user),
-                    created_at=timezone.now(),
-                    started_at=timezone.now(),
-                    completed_at=timezone.now(),
-                )
-
-                # Create initial note
-                InquiryNote.objects.create(
-                    inquiry=inquiry,
-                    note_type='status_change',
-                    content=f"Inquiry created: {inquiry_type}",
-                    created_by=request.user,
-                    is_visible_to_customer=True
-                )
-
-                try:
-                    add_audit_log(request.user, 'inquiry_create', f"Created inquiry #{inquiry.id} for {customer.full_name} ({inquiry_type})")
-                except Exception:
-                    pass
-
-                return JsonResponse({
-                    'success': True,
-                    'message': 'Inquiry created successfully',
-                    'inquiry_id': inquiry.id
-                })
-            except Exception as e:
+            if not new_name or not new_phone:
                 return JsonResponse({
                     'success': False,
-                    'message': str(e)
+                    'message': 'Customer name and phone are required'
+                }, status=400)
+
+            try:
+                customer, created = CustomerService.create_or_get_customer(
+                    branch=user_branch,
+                    full_name=new_name,
+                    phone=new_phone,
+                    create_if_missing=True
+                )
+            except Exception as e:
+                logger.error(f"Failed to create new customer for inquiry: {e}")
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Failed to create customer: {str(e)}'
                 }, status=400)
         else:
-            errors = {field: [str(error) for error in field_errors]
-                     for field, field_errors in form.errors.items()}
+            # Use existing customer from form
+            form = InquiryCreationForm(request.POST)
+            if not form.is_valid():
+                errors = {field: [str(error) for error in field_errors]
+                         for field, field_errors in form.errors.items()}
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Form validation failed',
+                    'errors': errors
+                }, status=400)
+            customer = form.cleaned_data.get('customer')
+            inquiry_type = form.cleaned_data.get('inquiry_type')
+            questions = form.cleaned_data.get('questions')
+            priority = form.cleaned_data.get('priority')
+            follow_up_date = form.cleaned_data.get('follow_up_date')
+
+        # For new customer mode, get other fields from request
+        if customer_mode == 'new':
+            inquiry_type = request.POST.get('inquiry_type', '')
+            questions = request.POST.get('questions', '')
+            priority = request.POST.get('priority', 'medium')
+            follow_up_date = request.POST.get('follow_up_date') or None
+
+        if not customer:
             return JsonResponse({
                 'success': False,
-                'message': 'Form validation failed',
-                'errors': errors
+                'message': 'Customer is required'
+            }, status=400)
+
+        if not inquiry_type or not questions:
+            return JsonResponse({
+                'success': False,
+                'message': 'Inquiry type and questions are required'
+            }, status=400)
+
+        try:
+            # Create inquiry order
+            inquiry = Order.objects.create(
+                order_number=Order()._generate_order_number(),
+                type='inquiry',
+                status='completed',
+                customer=customer,
+                inquiry_type=inquiry_type,
+                questions=questions,
+                priority=priority,
+                follow_up_date=follow_up_date,
+                branch=user_branch,
+                created_at=timezone.now(),
+                started_at=timezone.now(),
+                completed_at=timezone.now(),
+            )
+
+            # Create initial note
+            InquiryNote.objects.create(
+                inquiry=inquiry,
+                note_type='status_change',
+                content=f"Inquiry created: {inquiry_type}",
+                created_by=request.user,
+                is_visible_to_customer=True
+            )
+
+            try:
+                add_audit_log(request.user, 'inquiry_create', f"Created inquiry #{inquiry.id} for {customer.full_name} ({inquiry_type})")
+            except Exception:
+                pass
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Inquiry created successfully',
+                'inquiry_id': inquiry.id
+            })
+        except Exception as e:
+            logger.error(f"Failed to create inquiry: {e}")
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
             }, status=400)
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
