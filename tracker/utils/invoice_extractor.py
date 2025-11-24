@@ -188,12 +188,17 @@ def extract_header_fields(text):
     reference = None
     # Try: "Reference: ..." or "Ref: ..." or "Reference Number: ..."
     reference = extract_field(r'(?:Reference|Ref\.?|PO\s*(?:Reference|Number))')
+
     # If not found, try to find it as a standalone pattern without a label
     if not reference:
         # Look for patterns like "FOR T 964 DNA" or similar plate-like references
         ref_match = re.search(r'\b(?:FOR|REF)?\s+([A-Z]{1,3}\s*\d{1,4}\s*[A-Z]{2,3})\b', text, re.I)
         if ref_match:
             reference = ref_match.group(1).strip()
+
+    # Log reference extraction for debugging
+    if reference:
+        logger.info(f"Extracted reference field: {reference}")
 
     # Extract monetary amounts
     net = None
