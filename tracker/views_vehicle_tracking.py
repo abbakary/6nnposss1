@@ -302,7 +302,7 @@ def api_vehicle_tracking_data(request):
             # Determine if returning vehicle (multiple visits/invoices)
             is_returning = invoice_count > 1
 
-            # Prefer plate from the most recent invoice reference
+            # Prefer plate from: 1) most recent invoice reference, 2) vehicle's plate_number as fallback
             recent_plate = None
             try:
                 if filtered_invoices:
@@ -313,9 +313,17 @@ def api_vehicle_tracking_data(request):
                         )
                     except Exception:
                         recent_invoice = filtered_invoices[0]
+                    # Try to extract plate from reference field first
                     recent_plate = _plate_from_reference(recent_invoice.reference)
+                    # If reference doesn't have a valid plate but invoice has vehicle, use vehicle's plate
+                    if not recent_plate and recent_invoice.vehicle:
+                        recent_plate = recent_invoice.vehicle.plate_number
             except Exception:
                 recent_plate = None
+
+            # Final fallback to vehicle's plate_number if not found from invoices
+            if not recent_plate and vehicle:
+                recent_plate = vehicle.plate_number
 
             vehicle_dict = {
                 'id': vehicle.id,
