@@ -813,7 +813,7 @@
                         <label class="form-label fw-medium">
                             <i class="fa fa-plus-circle me-2 text-success"></i>Start New Order
                         </label>
-                        <button type="button" id="quickStartBtn" class="btn btn-sm btn-primary w-100" data-bs-toggle="modal" data-bs-target="#quickOrderTypeModal">
+                        <button type="button" id="quickStartBtn" class="btn btn-sm btn-primary w-100">
                             <i class="fa fa-play me-1"></i>Start Order
                         </button>
                         {% if started_order_id %}<input type="hidden" id="startedOrderId" value="{{ started_order_id }}" />{% endif %}
@@ -942,9 +942,6 @@
     const startBtn = document.getElementById('quickStartBtn');
     const stopBtn = document.getElementById('quickStopBtn');
     const startedOrderEl = document.getElementById('startedOrderId');
-    const orderTypeModal = document.getElementById('quickOrderTypeModal');
-    const confirmStartBtn = document.getElementById('confirmQuickStart');
-    const orderTypeRadios = document.querySelectorAll('input[name="quickOrderType"]');
 
     // Handle vehicle selector dropdown
     if (vehicleSelector) {
@@ -990,16 +987,9 @@
 
     if (startBtn) {
       startBtn.addEventListener('click', function(e) {
-        // Allow starting without plate; modal will handle order type
-      });
-    }
+        e.preventDefault();
 
-    document.addEventListener('click', function(ev) {
-      const t = ev.target;
-      if (!t) return;
-      if (t.id === 'confirmQuickStart' || (t.closest && t.closest('#confirmQuickStart'))) {
         let plate = '';
-
         // Get plate from either dropdown or text input
         if (vehicleSelector && vehicleSelector.style.display !== 'none' && vehicleSelector.value && vehicleSelector.value !== '__new__') {
           plate = vehicleSelector.value.trim().toUpperCase();
@@ -1009,15 +999,22 @@
           plate = (plateEl.value || '').trim().toUpperCase();
         }
 
-        const orderType = document.querySelector('input[name="quickOrderType"]:checked')?.value || 'service';
+        // If no plate, ask user
+        if (!plate) {
+          alert('Please enter a vehicle plate number');
+          return;
+        }
+
+        // Create order with default type 'service' - order type will be determined after invoice extraction
         const payload = {
           plate_number: plate,
-          order_type: orderType,
+          order_type: 'service',
           use_existing_customer: true,
           existing_customer_id: {{ customer.id }}
         };
-        const modal = bootstrap.Modal.getInstance(orderTypeModal);
-        if (modal) modal.hide();
+
+        startBtn.disabled = true;
+        startBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i>Starting...';
 
         fetch('/tracker/api/orders/start/', {
           method: 'POST',
@@ -1028,10 +1025,16 @@
             window.location.reload();
           } else {
             alert(data && data.error ? data.error : 'Failed to start order');
+            startBtn.disabled = false;
+            startBtn.innerHTML = '<i class="fa fa-play me-1"></i>Start Order';
           }
-        }).catch(e => alert('Error: ' + (e && e.message ? e.message : e)));
-      }
-    });
+        }).catch(e => {
+          alert('Error: ' + (e && e.message ? e.message : e));
+          startBtn.disabled = false;
+          startBtn.innerHTML = '<i class="fa fa-play me-1"></i>Start Order';
+        });
+      });
+    }
 
     if(stopBtn){
       stopBtn.addEventListener('click',function(){
@@ -1052,63 +1055,6 @@
   })();
 </script>
 
-<!-- Quick Order Type Selection Modal -->
-<div class="modal fade" id="quickOrderTypeModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">
-                    <i class="fa fa-list me-2"></i>Select Order Type
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="mb-4 text-muted">Choose the type of order you want to start:</p>
-                <div class="row g-3">
-                    <div class="col-12">
-                        <label class="form-check form-check-custom form-check-solid">
-                            <input type="radio" name="quickOrderType" value="service" class="form-check-input" checked>
-                            <div class="form-check-label">
-                                <div class="fw-bold">
-                                    <i class="fa fa-wrench me-2 text-primary"></i>Service Order
-                                </div>
-                                <small class="text-muted">For vehicle repairs and maintenance services</small>
-                            </div>
-                        </label>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-check form-check-custom form-check-solid">
-                            <input type="radio" name="quickOrderType" value="sales" class="form-check-input">
-                            <div class="form-check-label">
-                                <div class="fw-bold">
-                                    <i class="fa fa-shopping-cart me-2 text-success"></i>Sales Order
-                                </div>
-                                <small class="text-muted">For selling parts and accessories</small>
-                            </div>
-                        </label>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-check form-check-custom form-check-solid">
-                            <input type="radio" name="quickOrderType" value="inquiry" class="form-check-input">
-                            <div class="form-check-label">
-                                <div class="fw-bold">
-                                    <i class="fa fa-question-circle me-2 text-info"></i>Inquiry
-                                </div>
-                                <small class="text-muted">For customer inquiries and requests</small>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmQuickStart">
-                    <i class="fa fa-play me-2"></i>Start Order
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Add Vehicle Modal -->
 <div class="modal fade" id="addVehicleModal" tabindex="-1">

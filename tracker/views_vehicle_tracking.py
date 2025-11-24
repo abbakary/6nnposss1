@@ -165,7 +165,11 @@ def api_vehicle_tracking_data(request):
             )
             if user_branch:
                 inv_qs = inv_qs.filter(branch=user_branch)
-            filtered_invoices = [inv for inv in inv_qs if _plate_from_reference(inv.reference)]
+            # Include invoices that have either:
+            # 1. A valid plate number in the reference field (extracted from invoice), OR
+            # 2. A vehicle field directly set (linked during invoice upload)
+            # This ensures vehicles are tracked even if the reference field doesn't contain a plate
+            filtered_invoices = [inv for inv in inv_qs if _plate_from_reference(inv.reference) or inv.vehicle_id]
             if not filtered_invoices:
                 continue
 
@@ -298,7 +302,7 @@ def api_vehicle_tracking_data(request):
             # Determine if returning vehicle (multiple visits/invoices)
             is_returning = invoice_count > 1
 
-            # Prefer plate from the most recent invoice reference
+            # Prefer plate from: 1) most recent invoice reference, 2) vehicle's plate_number as fallback
             recent_plate = None
             try:
                 if filtered_invoices:
@@ -309,9 +313,17 @@ def api_vehicle_tracking_data(request):
                         )
                     except Exception:
                         recent_invoice = filtered_invoices[0]
+                    # Try to extract plate from reference field first
                     recent_plate = _plate_from_reference(recent_invoice.reference)
+                    # If reference doesn't have a valid plate but invoice has vehicle, use vehicle's plate
+                    if not recent_plate and recent_invoice.vehicle:
+                        recent_plate = recent_invoice.vehicle.plate_number
             except Exception:
                 recent_plate = None
+
+            # Final fallback to vehicle's plate_number if not found from invoices
+            if not recent_plate and vehicle:
+                recent_plate = vehicle.plate_number
 
             vehicle_dict = {
                 'id': vehicle.id,

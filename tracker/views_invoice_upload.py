@@ -598,6 +598,23 @@ def api_create_invoice_from_upload(request):
                 linked_vehicle = vehicle
             inv.vehicle = linked_vehicle
 
+            # Ensure order's vehicle is updated if invoice has a vehicle
+            # This ensures consistency between invoice and order vehicle tracking
+            if linked_vehicle and order and not order.vehicle_id:
+                order.vehicle = linked_vehicle
+                logger.info(f"Updated order {order.id} vehicle to {linked_vehicle.id} from invoice vehicle")
+                # Save the order with updated vehicle
+                for _ in range(3):
+                    try:
+                        order.save(update_fields=['vehicle'])
+                        break
+                    except OperationalError as e:
+                        if 'database is locked' in str(e).lower():
+                            time.sleep(0.2)
+                            continue
+                        else:
+                            raise
+
             # Parse invoice date
             invoice_date_str = request.POST.get('invoice_date', '')
             try:

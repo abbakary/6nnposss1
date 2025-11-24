@@ -328,10 +328,35 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
+                        <label class="form-label fw-semibold">Customer</label>
+                        <div class="btn-group w-100 mb-3" role="group">
+                            <input type="radio" class="btn-check" name="customerMode" id="existingCustomerMode" value="existing" checked>
+                            <label class="btn btn-outline-primary" for="existingCustomerMode">Select Existing</label>
+                            <input type="radio" class="btn-check" name="customerMode" id="newCustomerMode" value="new">
+                            <label class="btn btn-outline-primary" for="newCustomerMode">Create New</label>
+                        </div>
+                    </div>
+
+                    <!-- Existing Customer Section -->
+                    <div id="existingCustomerSection" class="mb-3">
                         <label class="form-label fw-semibold">Select Customer</label>
-                        <select class="form-select" name="customer" required id="customerSelect">
+                        <select class="form-select" name="customer" id="customerSelect">
                             <option value="">-- Choose a customer --</option>
                         </select>
+                    </div>
+
+                    <!-- New Customer Section -->
+                    <div id="newCustomerSection" style="display:none;" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Full Name</label>
+                                <input type="text" name="new_customer_name" id="newCustomerName" class="form-control" placeholder="Customer name">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Phone</label>
+                                <input type="text" name="new_customer_phone" id="newCustomerPhone" class="form-control" placeholder="Phone number">
+                            </div>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Inquiry Type</label>
@@ -475,9 +500,15 @@
         });
     })();
 
-    // Load customers for create inquiry modal
+    // Load customers for create inquiry modal and handle customer mode switching
     (function(){
         const customerSelect = document.getElementById('customerSelect');
+        const existingMode = document.getElementById('existingCustomerMode');
+        const newMode = document.getElementById('newCustomerMode');
+        const existingSection = document.getElementById('existingCustomerSection');
+        const newSection = document.getElementById('newCustomerSection');
+
+        // Load customers for dropdown
         if (customerSelect) {
             fetch('/tracker/api/customers/list/', {
                 headers: {
@@ -510,6 +541,29 @@
                 customerSelect.appendChild(option);
             });
         }
+
+        // Handle customer mode switching
+        if (existingMode && newMode) {
+            existingMode.addEventListener('change', function() {
+                if (this.checked) {
+                    existingSection.style.display = 'block';
+                    newSection.style.display = 'none';
+                    customerSelect.required = true;
+                    document.getElementById('newCustomerName').required = false;
+                    document.getElementById('newCustomerPhone').required = false;
+                }
+            });
+
+            newMode.addEventListener('change', function() {
+                if (this.checked) {
+                    existingSection.style.display = 'none';
+                    newSection.style.display = 'block';
+                    customerSelect.required = false;
+                    document.getElementById('newCustomerName').required = true;
+                    document.getElementById('newCustomerPhone').required = true;
+                }
+            });
+        }
     })();
 
     // Create inquiry form submission
@@ -519,7 +573,24 @@
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
 
+                const mode = document.querySelector('input[name="customerMode"]:checked')?.value;
+                const existingCustomerId = document.getElementById('customerSelect')?.value;
+                const newCustomerName = document.getElementById('newCustomerName')?.value;
+                const newCustomerPhone = document.getElementById('newCustomerPhone')?.value;
+
+                // Build FormData
                 const formData = new FormData(form);
+                formData.set('customer_mode', mode || 'existing');
+
+                if (mode === 'new') {
+                    // For new customer, send customer creation data
+                    formData.set('new_customer_name', newCustomerName);
+                    formData.set('new_customer_phone', newCustomerPhone);
+                    // Remove the customer field if it's empty
+                    if (!existingCustomerId) {
+                        formData.delete('customer');
+                    }
+                }
 
                 fetch('/tracker/api/inquiries/create/', {
                     method: 'POST',
@@ -542,7 +613,7 @@
                         alert('Inquiry created successfully!');
                         location.reload();
                     } else {
-                        alert('Error: ' + data.message);
+                        alert('Error: ' + (data.message || 'Failed to create inquiry'));
                     }
                 })
                 .catch(e => {
