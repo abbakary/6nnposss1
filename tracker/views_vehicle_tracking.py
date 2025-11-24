@@ -165,7 +165,11 @@ def api_vehicle_tracking_data(request):
             )
             if user_branch:
                 inv_qs = inv_qs.filter(branch=user_branch)
-            filtered_invoices = [inv for inv in inv_qs if _plate_from_reference(inv.reference)]
+            # Include invoices that have either:
+            # 1. A valid plate number in the reference field (extracted from invoice), OR
+            # 2. A vehicle field directly set (linked during invoice upload)
+            # This ensures vehicles are tracked even if the reference field doesn't contain a plate
+            filtered_invoices = [inv for inv in inv_qs if _plate_from_reference(inv.reference) or inv.vehicle_id]
             if not filtered_invoices:
                 continue
 
