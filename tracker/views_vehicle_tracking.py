@@ -121,14 +121,31 @@ def api_vehicle_tracking_data(request):
         # The vehicle is identified by the plate number (reference field) from the invoice
         # We track all vehicles with invoices in the date range, regardless of order type
         # (invoices can be associated with orders of any type: service, sales, labour, mixed, etc.)
-        vehicles_query = Vehicle.objects.filter(
-            invoices__invoice_date__range=[start_date, end_date]
-        ).distinct()
+        # Also include vehicles with orders in the date range for completeness
+        invoices_query = Invoice.objects.filter(
+            invoice_date__range=[start_date, end_date]
+        )
+
+        orders_query = Order.objects.filter(
+            created_at__date__range=[start_date, end_date]
+        )
 
         if user_branch:
-            vehicles_query = vehicles_query.filter(
-                Q(invoices__branch=user_branch) | Q(orders__branch=user_branch)
-            ).distinct()
+            invoices_query = invoices_query.filter(branch=user_branch)
+            orders_query = orders_query.filter(branch=user_branch)
+
+        # Get vehicles from invoices
+        vehicles_query = Vehicle.objects.filter(
+            invoices__in=invoices_query
+        ).distinct()
+
+        # Also get vehicles from orders
+        vehicles_from_orders = Vehicle.objects.filter(
+            orders__in=orders_query
+        ).distinct()
+
+        # Combine both querysets
+        vehicles_query = vehicles_query | vehicles_from_orders
 
         logger.info(f"Vehicles found before search filter: {vehicles_query.count()}")
 
