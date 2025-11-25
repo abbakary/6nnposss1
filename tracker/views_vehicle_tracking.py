@@ -18,7 +18,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 
-from tracker.models import Vehicle, Order, Invoice, InvoiceLineItem, LabourCode, Customer
+from tracker.models import Vehicle, Order, Invoice, InvoiceLineItem, LabourCode, Customer, Branch
 from tracker.utils.order_type_detector import _normalize_category_to_order_type
 from .utils import get_user_branch
 
