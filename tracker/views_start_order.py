@@ -34,11 +34,13 @@ def api_start_order(request):
       - existing_customer_id (optional int)
       - service_selection (optional list of service names)
       - estimated_duration (optional int minutes)
+      - force_new_order (optional boolean) - if True, creates new order even if one exists for this plate
 
     If plate exists in current branch and use_existing_customer is not provided, the endpoint will return existing_customer info
     so the frontend can ask the user whether to reuse existing customer or continue as new.
 
-    If an order with status='created' already exists for this plate, return that order instead of creating a duplicate.
+    If an order with status='created' already exists for this plate and force_new_order is False, return that order instead of creating a duplicate.
+    If force_new_order is True, create a new order regardless of existing orders.
     """
     try:
         data = json.loads(request.body)
@@ -48,6 +50,7 @@ def api_start_order(request):
         existing_customer_id = data.get('existing_customer_id')
         service_selection = data.get('service_selection') or []
         estimated_duration = data.get('estimated_duration')
+        force_new_order = data.get('force_new_order', False)
 
         if not plate_number and not (use_existing and existing_customer_id):
             return JsonResponse({'success': False, 'error': 'Vehicle plate number is required'}, status=400)
@@ -72,10 +75,10 @@ def api_start_order(request):
             else:
                 customer = None
 
-            # Check for existing orders only if not using a pre-selected customer
-            # (if customer is pre-selected, allow creating new order with same plate)
+            # Check for existing orders only if not using a pre-selected customer and not forcing new order
+            # (if customer is pre-selected or force_new_order is True, allow creating new order with same plate)
             existing_vehicle = None
-            if plate_number and not existing_customer_id:
+            if plate_number and not existing_customer_id and not force_new_order:
                 existing_vehicle = Vehicle.objects.filter(plate_number__iexact=plate_number, customer__branch=user_branch).select_related('customer').first()
                 if existing_vehicle:
                     # Check if there's already a started (in_progress) order for this vehicle
@@ -161,39 +164,42 @@ def api_start_order(request):
             if service_selection:
                 desc += ": " + ", ".join(service_selection)
 
-            # Prefer returning any existing 'created' order to avoid duplicates
-            existing_created = None
-            if vehicle:
-                existing_created = Order.objects.filter(
-                    vehicle=vehicle,
-                    status='created'
-                ).order_by('-created_at').first()
-
-            if existing_created:
-                order = existing_created
-            else:
-                # If there's already an active in-progress order, reuse it
-                existing_order = None
+            # Only reuse existing orders if force_new_order is False
+            order = None
+            if not force_new_order:
+                # Prefer returning any existing 'created' order to avoid duplicates
                 if vehicle:
+                    existing_created = Order.objects.filter(
+                        vehicle=vehicle,
+                        status='created'
+                    ).order_by('-created_at').first()
+
+                    if existing_created:
+                        order = existing_created
+
+            if not order:
+                if not force_new_order and vehicle:
+                    # If there's already an active in-progress order, reuse it
                     existing_order = Order.objects.filter(
                         vehicle=vehicle,
                         status__in=['in_progress', 'overdue']
                     ).order_by('-started_at').first()
 
-                if existing_order:
-                    order = existing_order
-                else:
-                    # Create new order as 'created' (started state). It will auto-progress to 'in_progress' after 10 minutes.
-                    # Use OrderService to ensure proper visit tracking
-                    order = OrderService.create_order(
-                        customer=customer,
-                        order_type=order_type,
-                        branch=user_branch,
-                        vehicle=vehicle,
-                        description=desc,
-                        priority='medium',
-                        estimated_duration=estimated_duration if estimated_duration else None,
-                    )
+                    if existing_order:
+                        order = existing_order
+
+            if not order:
+                # Create new order as 'created' (started state). It will auto-progress to 'in_progress' after 10 minutes.
+                # Use OrderService to ensure proper visit tracking
+                order = OrderService.create_order(
+                    customer=customer,
+                    order_type=order_type,
+                    branch=user_branch,
+                    vehicle=vehicle,
+                    description=desc,
+                    priority='medium',
+                    estimated_duration=estimated_duration if estimated_duration else None,
+                )
 
         return JsonResponse({
             'success': True,
