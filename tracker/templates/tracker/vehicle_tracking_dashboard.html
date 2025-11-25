@@ -332,8 +332,19 @@
 
 {% block content %}
 <div class="dashboard-header">
-    <h1><i class="fa fa-truck me-2"></i>Vehicle Service Tracking Dashboard</h1>
-    <p>Track vehicles for service with daily, weekly, and monthly analytics</p>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1><i class="fa fa-truck me-2"></i>Vehicle Service Tracking Dashboard</h1>
+            <p>Track vehicles for service with daily, weekly, and monthly analytics</p>
+        </div>
+        {% if user.is_superuser %}
+        <div>
+            <button id="seedDataBtn" class="btn btn-outline-light btn-sm" style="display: none;" title="Create sample data for testing">
+                <i class="fa fa-database me-1"></i>Seed Sample Data
+            </button>
+        </div>
+        {% endif %}
+    </div>
 </div>
 
 <!-- Period Selection -->
