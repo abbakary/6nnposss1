@@ -647,17 +647,8 @@ def api_create_invoice_from_upload(request):
             if linked_vehicle and order and not order.vehicle_id:
                 order.vehicle = linked_vehicle
                 logger.info(f"Updated order {order.id} vehicle to {linked_vehicle.id} from invoice vehicle")
-                # Save the order with updated vehicle
-                for _ in range(3):
-                    try:
-                        order.save(update_fields=['vehicle'])
-                        break
-                    except OperationalError as e:
-                        if 'database is locked' in str(e).lower():
-                            time.sleep(0.2)
-                            continue
-                        else:
-                            raise
+                # Save the order with updated vehicle (function-level retry will handle locks)
+                order.save(update_fields=['vehicle'])
 
             # Parse invoice date
             invoice_date_str = request.POST.get('invoice_date', '')
@@ -690,16 +681,8 @@ def api_create_invoice_from_upload(request):
                             inv.vehicle = _veh
                             if order and not order.vehicle_id:
                                 order.vehicle = _veh
-                                for _ in range(3):
-                                    try:
-                                        order.save(update_fields=['vehicle'])
-                                        break
-                                    except OperationalError as e:
-                                        if 'database is locked' in str(e).lower():
-                                            time.sleep(0.2)
-                                            continue
-                                        else:
-                                            raise
+                                # Save order with vehicle (function-level retry will handle locks)
+                                order.save(update_fields=['vehicle'])
                 except Exception:
                     pass
 
@@ -755,16 +738,9 @@ def api_create_invoice_from_upload(request):
                         inv.invoice_number = posted_inv_number
                     else:
                         inv.generate_invoice_number()
-            for _ in range(3):
-                try:
-                    inv.save()
-                    break
-                except OperationalError as e:
-                    if 'database is locked' in str(e).lower():
-                        time.sleep(0.2)
-                        continue
-                    else:
-                        raise
+
+            # Save invoice (function-level retry will handle database locks)
+            inv.save()
 
             # Save uploaded document if provided (optional in two-step flow)
             try:
@@ -846,17 +822,8 @@ def api_create_invoice_from_upload(request):
                         continue
 
                 if to_create:
-                    for _ in range(3):
-                        try:
-                            InvoiceLineItem.objects.bulk_create(to_create)
-                            logger.info(f"Created {len(to_create)} line items from extracted data with preserved values")
-                            break
-                        except OperationalError as e:
-                            if 'database is locked' in str(e).lower():
-                                time.sleep(0.2)
-                                continue
-                            else:
-                                raise
+                    InvoiceLineItem.objects.bulk_create(to_create)
+                    logger.info(f"Created {len(to_create)} line items from extracted data with preserved values")
             except Exception as e:
                 logger.warning(f"Failed to bulk create line items: {e}")
 
@@ -878,16 +845,7 @@ def api_create_invoice_from_upload(request):
                     order.type = detected_order_type
                     if detected_order_type == 'mixed' and categories:
                         order.mixed_categories = json.dumps(categories)
-                    for _ in range(3):
-                        try:
-                            order.save(update_fields=['type', 'mixed_categories'])
-                            break
-                        except OperationalError as e:
-                            if 'database is locked' in str(e).lower():
-                                time.sleep(0.2)
-                                continue
-                            else:
-                                raise
+                    order.save(update_fields=['type', 'mixed_categories'])
                     logger.info(f"Updated order {order.id} type to {detected_order_type}, categories: {categories}")
                 except Exception as e:
                     logger.warning(f"Failed to update order type from detected items: {e}")
