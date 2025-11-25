@@ -8,6 +8,7 @@ import logging
 import re
 from decimal import Decimal
 import time
+from functools import wraps
 from django.db.utils import OperationalError
 from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
@@ -23,6 +24,47 @@ from .utils import get_user_branch
 from .services import OrderService, CustomerService, VehicleService
 
 logger = logging.getLogger(__name__)
+
+
+def retry_on_db_lock(max_retries=3, initial_delay=0.1):
+    """
+    Decorator to retry a view function on database lock errors.
+    This helps with SQLite concurrency issues.
+
+    Args:
+        max_retries: Number of times to retry on database lock
+        initial_delay: Initial delay in seconds before first retry
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(request, *args, **kwargs):
+            last_error = None
+            delay = initial_delay
+
+            for attempt in range(max_retries):
+                try:
+                    return func(request, *args, **kwargs)
+                except (OperationalError, transaction.TransactionManagementError) as e:
+                    error_msg = str(e).lower()
+                    # Retry on database lock errors
+                    if 'database is locked' in error_msg or 'current transaction' in error_msg:
+                        last_error = e
+                        if attempt < max_retries - 1:
+                            logger.warning(f"Database lock detected (attempt {attempt + 1}/{max_retries}), retrying after {delay}s...")
+                            time.sleep(delay)
+                            delay *= 2  # Exponential backoff
+                            continue
+                    raise
+
+            # All retries failed
+            logger.error(f"Failed after {max_retries} retries: {last_error}")
+            return JsonResponse({
+                'success': False,
+                'message': 'Database error: Transaction could not be completed. Please try again.'
+            }, status=500)
+
+        return wrapper
+    return decorator
 
 
 def _get_item_code_categories(item_codes):
