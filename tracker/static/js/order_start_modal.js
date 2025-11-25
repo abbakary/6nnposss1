@@ -271,6 +271,11 @@ class OrderStartModal {
     formData.set('vehicle_make', document.querySelector('input[name="extracted_make"]').value || '');
     formData.set('vehicle_model', document.querySelector('input[name="extracted_model"]').value || '');
 
+    // Add force_new_order if it was set
+    if (this.formData.force_new_order) {
+      formData.set('force_new_order', 'true');
+    }
+
     // Show loading state
     const submitBtn = document.getElementById('submitBtn');
     const originalText = submitBtn.innerHTML;
