@@ -207,7 +207,7 @@
                     <strong>{{ item.description }}</strong>
                     <br><small class="text-muted">{{ item.get_item_type_display }}{% if item.unit %} ({{ item.unit }}){% endif %}</small>
                   </td>
-                  <td class="text-end">{{ item.quantity }}</td>
+                  <td class="text-end">{{ item.quantity|format_qty }}</td>
                   <td class="text-end">{{ item.unit_price|floatformat:2 }}</td>
                   <td class="text-end">{{ item.tax_rate|floatformat:2 }}</td>
                   <td class="text-end"><strong>{{ item.line_total|floatformat:2 }}</strong></td>
