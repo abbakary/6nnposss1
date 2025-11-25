@@ -493,6 +493,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     let trendChart, typeChart, topVehiclesChart;
 
+    // Check diagnostics on load
+    checkDataDiagnostics();
+
     // Initialize filters with defaults if not provided from server
     const serverStartDate = '{{ start_date }}' || '';
     const serverEndDate = '{{ end_date }}' || '';
