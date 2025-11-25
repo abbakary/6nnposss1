@@ -446,29 +446,89 @@ class OrderStartModal {
   }
 
   continueAsNewOrder() {
-    // Customer and vehicle are found - proceed with new order
-    // This will create a new order without linking to any existing started order
+    // Customer and vehicle are found - check if existing order exists before proceeding
     if (this.foundCustomer && this.foundVehicle) {
-      // Store the customer and vehicle info for order creation
-      this.formData.customer_id = this.foundCustomer.id;
-      this.formData.use_existing_customer = true;
-      this.formData.force_new_order = true;
+      const plate = this.foundVehicle.plate || '';
 
-      // Pre-populate vehicle info
-      document.querySelector('input[name="extracted_plate"]').value = this.foundVehicle.plate || '';
-      document.querySelector('input[name="extracted_make"]').value = this.foundVehicle.make || '';
-      document.querySelector('input[name="extracted_model"]').value = this.foundVehicle.model || '';
+      // Check if order exists for this plate
+      const checkPayload = {
+        plate_number: plate,
+        order_type: 'service',
+        use_existing_customer: true,
+        existing_customer_id: this.foundCustomer.id,
+        force_new_order: false
+      };
 
-      // Pre-select the customer type based on customer type
-      const customerType = this.foundCustomer.customer_type || 'personal';
-      const customerTypeInput = document.querySelector(`input[name="customer_type"][value="${customerType}"]`);
-      if (customerTypeInput) {
-        customerTypeInput.checked = true;
-        this.handleCustomerTypeChange();
-      }
+      fetch('/tracker/api/orders/start/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken() || '',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(checkPayload)
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.success && data.existing_order) {
+          // Existing order found - ask user what they want to do
+          const choice = confirm(
+            'An order for plate ' + plate + ' (Order #' + data.order_number + ') is already started.\n\n' +
+            'Click OK to continue with the existing order, or Cancel to start a new order with this plate.'
+          );
 
-      // Move to customer type selection
-      this.showStep(1);
+          if (choice) {
+            // Continue with existing order - redirect to it
+            window.location.href = '/tracker/orders/started/' + data.order_id + '/';
+          } else {
+            // Start new order - set force_new_order and pre-populate fields
+            this.formData.customer_id = this.foundCustomer.id;
+            this.formData.use_existing_customer = true;
+            this.formData.force_new_order = true;
+
+            // Pre-populate vehicle info
+            document.querySelector('input[name="extracted_plate"]').value = this.foundVehicle.plate || '';
+            document.querySelector('input[name="extracted_make"]').value = this.foundVehicle.make || '';
+            document.querySelector('input[name="extracted_model"]').value = this.foundVehicle.model || '';
+
+            // Pre-select the customer type
+            const customerType = this.foundCustomer.customer_type || 'personal';
+            const customerTypeInput = document.querySelector(`input[name="customer_type"][value="${customerType}"]`);
+            if (customerTypeInput) {
+              customerTypeInput.checked = true;
+              this.handleCustomerTypeChange();
+            }
+
+            // Move to customer type selection
+            this.showStep(1);
+          }
+        } else {
+          // No existing order - proceed to create new order
+          this.formData.customer_id = this.foundCustomer.id;
+          this.formData.use_existing_customer = true;
+          this.formData.force_new_order = false;
+
+          // Pre-populate vehicle info
+          document.querySelector('input[name="extracted_plate"]').value = this.foundVehicle.plate || '';
+          document.querySelector('input[name="extracted_make"]').value = this.foundVehicle.make || '';
+          document.querySelector('input[name="extracted_model"]').value = this.foundVehicle.model || '';
+
+          // Pre-select the customer type
+          const customerType = this.foundCustomer.customer_type || 'personal';
+          const customerTypeInput = document.querySelector(`input[name="customer_type"][value="${customerType}"]`);
+          if (customerTypeInput) {
+            customerTypeInput.checked = true;
+            this.handleCustomerTypeChange();
+          }
+
+          // Move to customer type selection
+          this.showStep(1);
+        }
+      })
+      .catch(error => {
+        console.error('Error checking for existing order:', error);
+        this.showQuickLookupError('Error checking for existing order. Please try again.');
+      });
     }
   }
 
