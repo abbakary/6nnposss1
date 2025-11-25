@@ -108,8 +108,6 @@ urlpatterns = [
     path("vehicles/tracking/dashboard/", views_vehicle_tracking.vehicle_tracking_dashboard, name="vehicle_tracking_dashboard"),
     path("api/vehicles/tracking/data/", views_vehicle_tracking.api_vehicle_tracking_data, name="api_vehicle_tracking_data"),
     path("api/vehicles/analytics/", views_vehicle_tracking.api_vehicle_analytics, name="api_vehicle_analytics"),
-    path("api/vehicles/tracking/diagnostics/", views_vehicle_tracking.api_vehicle_tracking_diagnostics, name="api_vehicle_tracking_diagnostics"),
-    path("api/vehicles/tracking/seed/", views_vehicle_tracking.api_seed_vehicle_tracking_data, name="api_seed_vehicle_tracking_data"),
 
     # Labour Codes Management
     path("labour-codes/", views_labour_codes.labour_codes_list, name="labour_codes_list"),
