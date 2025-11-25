@@ -344,3 +344,32 @@ def has_type(components_queryset, component_type: str) -> bool:
         return components_queryset.filter(type=component_type.lower()).exists()
     except Exception:
         return False
+
+
+@register.filter(name='format_qty')
+def format_qty(value: Union[int, float, str, Decimal]) -> str:
+    """
+    Format quantity to remove unnecessary decimal places.
+    4.00 -> 4, 4.50 -> 4.5, 4.05 -> 4.05
+    Usage: {{ item.quantity|format_qty }}
+    """
+    try:
+        if value is None or value == '':
+            return '0'
+
+        # Convert to Decimal for precise handling
+        if isinstance(value, str):
+            num = Decimal(value)
+        else:
+            num = Decimal(str(value))
+
+        # Remove trailing zeros and convert to string
+        result = str(num.quantize(Decimal('0.01')) if num % 1 != 0 else int(num))
+
+        # Clean up any unnecessary decimals
+        if '.' in result:
+            result = result.rstrip('0').rstrip('.')
+
+        return result
+    except (ValueError, TypeError, ZeroDivisionError):
+        return str(value) if value is not None else '0'
